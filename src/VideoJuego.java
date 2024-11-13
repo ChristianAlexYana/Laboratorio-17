@@ -26,21 +26,21 @@ class Soldado {
     }
 }
 class Ejercito {
-    private Soldado[] soldados;
+    private ArrayList<Soldado> soldados;
     private String reino;
     public Ejercito(String reino) {
         Random ran = new Random();
         this.reino = reino;
-        int cantidadSoldados = ran.nextInt(10) + 1; // Entre 1 y 10 soldados
-        this.soldados = new Soldado[cantidadSoldados];
+        int cantidadSoldados = ran.nextInt(10) + 1;
+        this.soldados = new ArrayList<>();
         for (int i = 0; i < cantidadSoldados; i++) {
-            soldados[i] = new Soldado();
+            soldados.add(new Soldado());
         }
     }
     public String getReino() {
         return reino;
     }
-    public Soldado[] getSoldados() {
+    public ArrayList<Soldado> getSoldados() {
         return soldados;
     }
     public int totalVida() {
@@ -61,31 +61,29 @@ class Ejercito {
         return totalVida() + totalAtaque();
     }
     public String getInfoEjercito() {
-        return soldados.length + "-" + totalVida() + "-" + this.reino.charAt(0);
+        return soldados.size() + "-" + totalVida() + "-" + this.reino.charAt(0);
     }
 }
 class Mapa {
     private String[][] tablero;
     private int filas;
     private int columnas;
-    private Ejercito[] ejercitos;
-    public Mapa(int filas, int columnas) {
+    private ArrayList<Ejercito> ejercitos;
+    public Mapa(int filas, int columnas, String[] reinosSeleccionados) {
         this.filas = filas;
         this.columnas = columnas;
         this.tablero = new String[filas][columnas];
-        this.ejercitos = new Ejercito[50];   //maximo de ejercitos por reinos
-        crearEjercitos();
+        this.ejercitos = new ArrayList<>();
+        crearEjercitos(reinosSeleccionados);//crea ejercitos y los coloca
     }
-    private void crearEjercitos() {
+    private void crearEjercitos(String[] reinosSeleccionados) { // crea ejercito del reino selcccionado
         Random ran = new Random();
-        String[] reinos = {"Inglaterra", "Francia", "Castilla-Aragón", "Moros", "Sacro Imperio Romano-Germánico"};
-        int index = 0;
-        for (String reino : reinos) {
+        for (String reino : reinosSeleccionados) {
             int cantidadEjercitos = ran.nextInt(10) + 1;
             for (int i = 0; i < cantidadEjercitos; i++) {
                 Ejercito ejercito = new Ejercito(reino);
-                ejercitos[index++] = ejercito;
-                posicionarEjercito(ejercito);
+                ejercitos.add(ejercito);
+                posicionarEjercito(ejercito); //se coloca en el tablero
             }
         }
     }
@@ -95,29 +93,28 @@ class Mapa {
         do {
             x = ran.nextInt(filas);
             y = ran.nextInt(columnas);
-        } while (tablero[x][y] != null && !tablero[x][y].equals("")); //evitar dos ejercitos en el mismo lugar
-        String territorio = asignarTerritorio(y, ejercito.getReino());//asignamos territorio segun columnas
-        for (Soldado s : ejercito.getSoldados()) {//aplicar bonus segun territorio
-            s.bonusTerritorio(territorio);
+        } while (tablero[x][y] != null && !tablero[x][y].equals(""));       //evitar dos ejercitos en el mismo lugar
+        String territorio = asignarTerritorio(y, ejercito.getReino());
+        for (Soldado s : ejercito.getSoldados()) {
+            s.bonusTerritorio(territorio);  //bono segun el territorio
         }
-        tablero[x][y] = ejercito.getInfoEjercito();//se coloca el ejercito en la celda
+        tablero[x][y] = ejercito.getInfoEjercito(); //coloca al ejercito en la casilla
     }
-    private String asignarTerritorio(int columna, String reino) {
-        if ((reino.equals("Inglaterra") && columna < 2) || (reino.equals("Francia") && columna >= 2 && columna < 4) ||
-                (reino.equals("Castilla-Aragón") && columna >= 4 && columna < 6) || (reino.equals("Moros") && columna >= 6 && columna < 8)) {
-            if (reino.equals("Inglaterra") )
+    private String asignarTerritorio(int columna, String reino) {//tipo de territorio segun colummna
+        if ((reino.equals("Inglaterra") && columna < 2) ||
+                (reino.equals("Francia") && columna >= 2 && columna < 4) ||
+                (reino.equals("Castilla-Aragón") && columna >= 4 && columna < 6) ||
+                (reino.equals("Moros") && columna >= 6 && columna < 8)) {
+            if (reino.equals("Inglaterra"))
                 return "bosque";
             if (reino.equals("Francia"))
                 return "campoAbierto";
-            if (reino.equals("Castilla-Aragón"))
+            if (reino.equals("Castilla-Aragon"))
                 return "montaña";
             if (reino.equals("Moros"))
                 return "desierto";
         }
-        return "playa"; // Para el Sacro Imperio Romano-Germánico en el caso de que esté en las últimas columnas
-    }
-    public Ejercito[] getEjercitos() {
-        return ejercitos;
+        return "playa";  //Sacro Imperio Romano-Germanico
     }
     public void mostrarTablero() {
         for (int i = 0; i < filas; i++) {
@@ -126,84 +123,155 @@ class Mapa {
                 if (tablero[i][j] == null || tablero[i][j].equals("")) {
                     System.out.print("_____|");
                 } else {
-                    String cellContent = tablero[i][j];
-                    System.out.print(cellContent + "|");
+                    System.out.print(tablero[i][j] + "|");
                 }
             }
             System.out.println();
+        }
+    }
+    public ArrayList<Ejercito> getEjercitos() {
+        return ejercitos;
+    }
+    public String[][] getTablero() {
+        return tablero;
+    }
+    public int getFilas() {
+        return filas;
+    }
+    public int getColumnas() {
+        return columnas;
+    }
+    public boolean verificarMovimiento(int x, int y, String reino) {
+        if (tablero[x][y] == null || tablero[x][y].equals("")) {
+            return true;  //la casilla esta vacia
+        }
+        String contenido = tablero[x][y];
+        String reinoEnPosicion = contenido.substring(contenido.indexOf("-") + 1, contenido.indexOf("-") + 2);
+        return !reinoEnPosicion.equals(reino.substring(0, 1));  // No permitir que un ejército se mueva a una casilla ocupada por su propio reino
+    }
+    public boolean moverEjercito(int x, int y, int nuevaX, int nuevaY) {
+        if (!verificarMovimiento(nuevaX, nuevaY, tablero[x][y].substring(0, 1))) {
+            return false;         //movimiento no valido
+        }
+        String contenido = tablero[nuevaX][nuevaY];  //si al mover a esa casilla hay otro se realiza batalla
+        if (contenido != null && !contenido.equals("") && !contenido.substring(0, 1).equals(tablero[x][y].substring(0, 1))) {
+            String reino = tablero[x][y].substring(1, 2);  //pobtener el reino del ejercito actual
+            realizarBatalla(x, y, reino);
+        }
+        tablero[nuevaX][nuevaY] = tablero[x][y]; //mover al ejercito a la casilla
+        tablero[x][y] = "";//la casilla deja en blanco
+        return true; //realiza correctamente el movimiento
+    }
+    public void realizarBatalla(int x, int y, String reino) {
+        String contenido = tablero[x][y];
+        String reinoRival = contenido.substring(contenido.indexOf("-") + 1, contenido.indexOf("-") + 2);
+        Ejercito ejercitoRival = null;
+        Ejercito ejercitoActual = null;
+        for (Ejercito e : ejercitos) {
+            if (e.getReino().equals(reinoRival)) {
+                ejercitoRival = e;
+            }
+            if (e.getReino().equals(reino)) {
+                ejercitoActual = e;
+            }
+        }
+        if (ejercitoRival == null || ejercitoActual == null) {
+            System.out.println("No se pudo encontrar los ejércitos.");
+            return;
+        }
+        int vidaActual = ejercitoActual.totalVida();
+        int ataqueActual = ejercitoActual.totalAtaque();
+        int vidaRival = ejercitoRival.totalVida();
+        int ataqueRival = ejercitoRival.totalAtaque();
+        double probabilidadActual = (double) (vidaActual + ataqueActual) / (vidaActual + ataqueActual + vidaRival + ataqueRival);
+        double probabilidadRival = 1 - probabilidadActual;
+        System.out.println("Probabilidad de victoria de " + reino + ": " + (probabilidadActual * 100) + "%");
+        System.out.println("Probabilidad de victoria de " + reinoRival + ": " + (probabilidadRival * 100) + "%");
+        Random rand = new Random();
+        if (rand.nextDouble() < probabilidadActual) {
+            System.out.println(reino + " gana la batalla con una probabilidad de " + (probabilidadActual * 100) + "%");
+            for (Soldado s : ejercitoActual.getSoldados()) { //ejercito actual ocupa la casilla
+                s.bonusTerritorio("bono"); //aumento de vida por bono
+            }
+        } else {
+            System.out.println(reinoRival + " gana la batalla con una probabilidad de " + (probabilidadRival * 100) + "%");
+            for (Soldado s : ejercitoRival.getSoldados()) { //ejercito rival ocupa la casilla
+                s.bonusTerritorio("bono");
+            }
         }
     }
 }
 public class VideoJuego {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        boolean seguirJugando = true;
-        while (seguirJugando) {
-            Mapa mapa = new Mapa(10, 10);
-            System.out.println("Tablero de batallas:");
+        String[] opcionesReinos = {"Inglaterra", "Francia", "Castilla-Aragón", "Moros", "Sacro Imperio Romano-Germánico"};
+        String[] reinosSeleccionados = new String[2];
+        System.out.println("Seleccione los dos reinos para jugar (1 para Inglaterra, 2 para Francia, 3 para Castilla-Aragón, 4 para Moros, 5 para Sacro Imperio Romano-Germánico):");
+        for (int i = 0; i < 2; i++) {
+            System.out.println("Elija el reino #" + (i + 1) + ":");
+            int eleccion = sc.nextInt();
+            while (eleccion < 1 || eleccion > 5) {
+                System.out.println("Opción inválida. Por favor elija un número entre 1 y 5.");
+                eleccion = sc.nextInt();
+            }
+            reinosSeleccionados[i] = opcionesReinos[eleccion - 1];
+        }
+        Mapa mapa = new Mapa(10, 10, reinosSeleccionados);
+        while (true) {
             mapa.mostrarTablero();
-            System.out.println("\nElija la métrica para determinar el ganador:");
-            System.out.println("1. Mayor nivel de vida total");
-            System.out.println("2. Suma de vida + ataque total");
-            System.out.println("3. Mayor suma de ataque");
-            System.out.print("Seleccione una opción (1/2/3): ");
-            int opcion = sc.nextInt();
-            batalla(mapa, opcion);//batalla segun metrica elegida
-            System.out.print("\n¿Quieres jugar otra vez? (s/n): ");
-            char respuesta = sc.next().charAt(0);
-            if (respuesta == 'n' || respuesta == 'N') {
-                seguirJugando = false;
+            for (String reino : reinosSeleccionados) {
+                System.out.println("Es el turno de " + reino);
+                jugadaJugador(reino, mapa);
+
+                mapa.mostrarTablero();
             }
         }
     }
-    public static void batalla(Mapa mapa, int opcion) {
-        Ejercito[] ejercitos = mapa.getEjercitos();
-        Ejercito ganador = null;
-        switch (opcion) {
-            case 1: //metrica 1: mayor nivel de vida total
-                int maxVida = -1;
-                for (Ejercito ejercito : ejercitos) {
-                    if (ejercito != null) {
-                        int vidaTotal = ejercito.totalVida();
-                        if (vidaTotal > maxVida) {
-                            maxVida = vidaTotal;
-                            ganador = ejercito;
-                        }
-                    }
-                }
+    public static void jugadaJugador(String reino, Mapa mapa) {
+        Scanner sc = new Scanner(System.in);
+        int x = -1, y = -1;
+        boolean posicionValida = false;
+        while (!posicionValida) {
+            System.out.println("Ingrese las coordenadas (x, y) de su ejército a mover:");
+            x = sc.nextInt();
+            y = sc.nextInt();
+            if (x < 0 || x >= mapa.getFilas() || y < 0 || y >= mapa.getColumnas()) {
+                System.out.println("Coordenadas fuera de los límites del mapa. Intente nuevamente.");
+                continue;
+            }
+            String contenido = mapa.getTablero()[x][y];
+            if (contenido != null && !contenido.equals("") && contenido.contains(reino.substring(0, 1))) {
+                posicionValida = true;  //ejercito pertenece al reino del jugador
+            } else {
+                System.out.println("No se pudo encontrar el ejército de " + reino + " en esa posición. Intente de nuevo.");
+            }
+        }
+        System.out.println("Ingrese la dirección (N, S, E, O):");
+        char direccionChar = sc.next().toUpperCase().charAt(0);
+        int nuevaX = x, nuevaY = y;
+        switch (direccionChar) {
+            case 'N':
+                nuevaX--;
                 break;
-
-            case 2: //metrica 2: suma total de vida y ataque
-                int maxSumaVidaAtaque = -1;
-                for (Ejercito ejercito : ejercitos) {
-                    if (ejercito != null) {
-                        int sumaVidaAtaque = ejercito.sumaVidaYataque();
-                        if (sumaVidaAtaque > maxSumaVidaAtaque) {
-                            maxSumaVidaAtaque = sumaVidaAtaque;
-                            ganador = ejercito;
-                        }
-                    }
-                }
+            case 'S':
+                nuevaX++;
                 break;
-
-            case 3: //metrica 3: mayor suma de ataque
-                int maxAtaque = -1;
-                for (Ejercito ejercito : ejercitos) {
-                    if (ejercito != null) {
-                        int ataqueTotal = ejercito.totalAtaque();
-                        if (ataqueTotal > maxAtaque) {
-                            maxAtaque = ataqueTotal;
-                            ganador = ejercito;
-                        }
-                    }
-                }
+            case 'E':
+                nuevaY++;
+                break;
+            case 'O':
+                nuevaY--;
                 break;
             default:
-                System.out.println("Opción no válida.");
+                System.out.println("Dirección no válida. Intente de nuevo.");
+                jugadaJugador(reino, mapa);
                 return;
         }
-        if (ganador != null) {
-            System.out.println(ganador.getReino() + " gana la guerra según la métrica seleccionada.");
+        if (mapa.moverEjercito(x, y, nuevaX, nuevaY)) {
+            System.out.println("Movimiento realizado.");
+        } else {
+            System.out.println("Movimiento no válido. Intente de nuevo.");
+            jugadaJugador(reino, mapa);
         }
     }
 }
